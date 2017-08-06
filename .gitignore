@@ -5,7 +5,7 @@ lib/
 pip-selfcheck.json
 
 # triage tool input parameters
-inputs/
+repos.txt
 
 # Python
 *.pyc

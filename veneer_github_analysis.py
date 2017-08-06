@@ -1,6 +1,7 @@
 import csv
 import json
 import os
+import sys
 
 from datetime import datetime as dt
 
@@ -27,14 +28,14 @@ def main(state):
         N/A
     """
 
-    # with open('./inputs/REPOS') as f:
-    #   repos = f.readlines()
-    # repos = [x.strip() for x in repos]
+    with open(sys.argv[1]) as f:
+      repos = f.readlines()
+    repos = [x.strip() for x in repos]
 
     # Authenticate with GitHub using Personal Access Token
     g = github3.login(token=os.environ['GH_TOKEN'])
 
-    data = rim.read_issue_metadata(g, ['google-cloud-ruby'], state)
+    data = rim.read_issue_metadata(g, repos, state)
     data_json = json.dumps(data)
 
     file_time = dt.now().strftime("%Y%m%d")
