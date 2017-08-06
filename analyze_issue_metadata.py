@@ -7,39 +7,47 @@ from datetime import datetime as dt
 
 import github3
 
-import read_issue_metadata as rim
+import get_issue_metadata as gim
 
 
 def main(state):
+
     """
-    Function that reads in an input file
+    Command line tool that reads in an input file
     containing GitHub repository names, calls read_issue_metadata
     and returns a JSON file of issue data.
+
+    Usage (command line):
+        $ python analyze_issue_metadata.py googlecloudplatform repos.txt
 
     Args:
         state: GitHub state of issue ('open', 'closed'
                or 'all')
-        sys.argv: path to input file
+        sys.argv[1]: github owner or organization
+        sys.argv[2]: path to input file containing names of repos belonging to
+                     owner or org in sys.argv[1].  One repo name per line.
 
     Returns:
-        A JSON file of issue metadata
+        A JSON of issue metadata
 
     Raises:
         N/A
     """
 
-    with open(sys.argv[1]) as f:
-      repos = f.readlines()
+    org = str(sys.argv[1])
+
+    with open(sys.argv[2]) as f:
+        repos = f.readlines()
     repos = [x.strip() for x in repos]
 
     # Authenticate with GitHub using Personal Access Token
     g = github3.login(token=os.environ['GH_TOKEN'])
 
-    data = rim.read_issue_metadata(g, repos, state)
+    data = gim.get_issue_metadata(g, org, repos, state)
+
+    # Dump the data to a JSON file
     data_json = json.dumps(data)
-
     file_time = dt.now().strftime("%Y%m%d")
-
     print 'Dumping data to json file'
     with open('../output_files/' + file_time + '_raw_veneer_issue_meta.json',
               'w') as f:
@@ -145,7 +153,7 @@ def state_of_triage(data):
     file_time = dt.now().strftime("%Y%m%d")
 
     with open('../output_files/' + file_time +
-              '_triage_state.csv', 'w') as csvfile:
+              '_repo_issue_analysis.csv', 'w') as csvfile:
 
         datawriter = csv.writer(csvfile, delimiter=',', quotechar='"')
         datawriter.writerow(['repo', 'issues', 'p0', 'p0_age', 'p1',
@@ -170,7 +178,7 @@ def state_of_triage(data):
                                  analysis[repo]['prs']['age']])
 
         print 'State of triage data written to file (../output_files/' + \
-              file_time + '_triage_state.csv)'
+              file_time + '_repo_issue_analysis.csv)'
 
 
 if __name__ == "__main__":

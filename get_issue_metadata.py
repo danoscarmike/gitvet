@@ -5,12 +5,41 @@ from datetime import datetime as dt
 import check_rate_limit as crl
 
 
-def read_issue_metadata(gh_login, repos, state):
+def get_issue_metadata(gh_login, org, repos, state):
 
-    # Function accepts a github3 login object and a list of repos to read from.
-    # Function returns a custom data structure continaing issue metadata
+    """
+    Function uses the GitHub v3 API to read the issues for each repo
+    in the list provided.  The following issue metadata is extracted
+    and returned in a JSON-like object.
 
-    org = 'googlecloudplatform'
+    Args:
+        gh_login: an authenticated GitHub session.
+        repos: list of GitHub repository names.
+        state: state of the issues to get via the API - can be 'open',
+               'closed' or 'all'.
+
+    Returns:
+        A JSON-like file of issue metadata:
+        'repoorg/reponame': {
+            'open_issues_count': <int>,
+            'prs': {'open_pr_count': <int>,
+                    'pr_aggregate_age': <int>},
+            'issues': {
+                issue.number: {
+                    assignee: <string>,
+                    created: <isoformat date>,
+                    labels: [
+                        <string>, ...
+                    ]
+                    title: <string>,
+                    updated: <isoformat data>
+                }
+            }
+        }
+
+    Raises:
+        N/A
+    """
 
     # Initialize dictionary for results
     data = {}
