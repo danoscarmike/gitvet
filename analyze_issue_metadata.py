@@ -57,7 +57,7 @@ def main(state):
     return data_json
 
 
-def state_of_triage(data):
+def analyze_issue_metadata(data):
 
     p0_labels = ['Priority: P0', 'priority: P0', 'priority: p0', 'P0', 'p0']
     p1_labels = ['Priority: P1', 'priority: P1', 'priority: p1', 'P1', 'p1']
@@ -182,5 +182,5 @@ def state_of_triage(data):
 
 
 if __name__ == "__main__":
-    data = main('open')
-    state_of_triage(data)
+    data = main(state='open')
+    analyze_issue_metadata(data)
