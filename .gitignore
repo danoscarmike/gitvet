@@ -1,0 +1,12 @@
+# virtualenv
+bin/
+include/
+lib/
+pip-selfcheck.json
+
+# triage tool input parameters
+inputs/
+
+# Python
+*.pyc
+.Python

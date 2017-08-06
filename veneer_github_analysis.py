@@ -11,7 +11,7 @@ import read_issue_metadata as rim
 
 def main(state):
     """
-    Helper function that reads in an input file
+    Function that reads in an input file
     containing GitHub repository names, calls read_issue_metadata
     and returns a JSON file of issue data.
 
@@ -149,8 +149,8 @@ def state_of_triage(data):
         datawriter = csv.writer(csvfile, delimiter=',', quotechar='"')
         datawriter.writerow(['repo', 'issues', 'p0', 'p0_age', 'p1',
                              'p1_age', 'p2+', 'p2_age', 'no_p', 'no_p_age',
-                             'pulls', 'pulls_age', 'fr/question',
-                             'fr/question_age'])
+                             'fr/question', 'fr/question_age', 'pulls',
+                             'pulls_age'])
 
         for repo in analysis:
             datawriter.writerow([repo,
@@ -163,10 +163,10 @@ def state_of_triage(data):
                                  analysis[repo]['p2+']['age'],
                                  analysis[repo]['no_priority_label']['count'],
                                  analysis[repo]['no_priority_label']['age'],
-                                 analysis[repo]['prs']['count'],
-                                 analysis[repo]['prs']['age'],
                                  analysis[repo]['fr_question']['count'],
-                                 analysis[repo]['fr_question']['age']])
+                                 analysis[repo]['fr_question']['age'],
+                                 analysis[repo]['prs']['count'],
+                                 analysis[repo]['prs']['age']])
 
         print 'State of triage data written to file (../output_files/' + \
               file_time + '_triage_state.csv)'
