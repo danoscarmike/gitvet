@@ -88,7 +88,7 @@ def get_issue_metadata(gh_login, org, repos, state):
                     issue.title
                 if issue.assignee:
                     data[repo_path]['issues'][issue.number][
-                        'assignee'] = issue.assignee.name
+                        'assignee'] = issue.assignee.login
 
                 # add list of issue's labels
                 if issue.labels():

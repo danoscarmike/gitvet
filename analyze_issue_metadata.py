@@ -70,12 +70,6 @@ def analyze_issue_metadata(data):
         csv file
     """
 
-    # p0_labels = ['priority: p0', 'p0']
-    # p1_labels = ['priority: p1', 'p1']
-    # p2_labels = ['priority: p2+', 'p2+', 'priority: p2', 'p2']
-    # fr_question = ['enhancement', 'type: enhancement', 'type: question',
-    #                'question']
-
     analysis = {}
 
     # Load/decode the data JSON
@@ -110,40 +104,12 @@ def analyze_issue_metadata(data):
 
             analysis[repo]['issues']['age'] += (dt.utcnow() -
                                                 created_date).days
+
             # determine the issue type (p0, p1, ...), and
             # increment that type's counter and aggregate age
             analysis[repo][determine_issue_type(issue_meta)]['count'] += 1
             analysis[repo][determine_issue_type(issue_meta)]['age'] += (
                 dt.utcnow() - created_date).days
-
-            # if any(w.lower() in data_decode[repo]['issues'][issue]['labels']
-            #        for w in p0_labels):
-            #     analysis[repo]['p0']['count'] += 1
-            #     analysis[repo]['p0']['age'] += (dt.utcnow() -
-            #                                     created_date).days
-            #
-            # elif any(x.lower() in data_decode[repo]['issues'][issue]['labels']
-            #          for x in p1_labels):
-            #     analysis[repo]['p1']['count'] += 1
-            #     analysis[repo]['p1']['age'] += (dt.utcnow() -
-            #                                     created_date).days
-            #
-            # elif any(y.lower() in data_decode[repo]['issues'][issue]['labels']
-            #          for y in p2_labels):
-            #     analysis[repo]['p2+']['count'] += 1
-            #     analysis[repo]['p2+']['age'] += (dt.utcnow() -
-            #                                      created_date).days
-            #
-            # elif any(z in data_decode[repo]['issues'][issue]['labels']
-            #          for z in fr_question):
-            #     analysis[repo]['fr_question']['count'] += 1
-            #     analysis[repo]['fr_question']['age'] += (
-            #         dt.utcnow() - created_date).days
-            #
-            # else:
-            #     analysis[repo]['no_priority_label']['count'] += 1
-            #     analysis[repo]['no_priority_label']['age'] += (
-            #         dt.utcnow() - created_date).days
 
         for issue_type, data in analysis[repo].items():
             if data['count'] <= 0:
