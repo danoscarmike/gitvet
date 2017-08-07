@@ -148,24 +148,42 @@ def analyze_issue_metadata(data):
 
     with open('../output_files/%s_repo_issue_analysis.csv' % file_time,
               'w') as csvfile:
-        fieldnames = [repo, analysis[repo]['issues']['count'],
-                      analysis[repo]['p0']['count'],
-                      analysis[repo]['p0']['age'],
-                      analysis[repo]['p1']['count'],
-                      analysis[repo]['p1']['age'],
-                      analysis[repo]['p2+']['count'],
-                      analysis[repo]['p2+']['age'],
-                      analysis[repo]['no_priority_label']['count'],
-                      analysis[repo]['no_priority_label']['age'],
-                      analysis[repo]['fr_question']['count'],
-                      analysis[repo]['fr_question']['age'],
-                      analysis[repo]['prs']['count'],
-                      analysis[repo]['prs']['age']]
+        fieldnames = ['repo'] + [issue_category + '[' + category_data + ']'
+                                 for repo in analysis.keys()
+                                 for issue_category in analysis[repo].keys()
+                                 for category_data in
+                                 analysis[repo][issue_category].keys()]
+
+        print(fieldnames)
+
+        # analysis[repo] = {'issues': {'count': 0, 'age': 0},
+        #                   'prs': {'count': 0, 'age': 0},
+        #                   'p0': {'count': 0, 'age': 0},
+        #                   'p1': {'count': 0, 'age': 0},
+        #                   'p2+': {'count': 0, 'age': 0},
+        #                   'no_priority_label': {'count': 0, 'age': 0},
+        #                   'fr_question': {'count': 0, 'age': 0}}
+
+        # repo, analysis[repo]['issues']['count'],
+        #              analysis[repo]['p0']['count'],
+        #              analysis[repo]['p0']['age'],
+        #              analysis[repo]['p1']['count'],
+        #              analysis[repo]['p1']['age'],
+        #              analysis[repo]['p2+']['count'],
+        #              analysis[repo]['p2+']['age'],
+        #              analysis[repo]['no_priority_label']['count'],
+        #              analysis[repo]['no_priority_label']['age'],
+        #              analysis[repo]['fr_question']['count'],
+        #              analysis[repo]['fr_question']['age'],
+        #              analysis[repo]['prs']['count'],
+        #              analysis[repo]['prs']['age']]
+
+
         datawriter = csv.DictWriter(csvfile, delimiter=',',
                                     fieldnames=fieldnames, quotechar='"')
         datawriter.writeheader()
         for repo in analysis.keys():
-            datawriter.writerow([repo] + [analysis[repo] for repo in analysis])
+            datawriter.writerow(analysis[repo])
 
         print('State of triage data written to file '
               '(../output_files/%s_repo_issue_analysis.csv)' % file_time)
