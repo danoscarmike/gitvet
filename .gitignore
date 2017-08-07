@@ -8,5 +8,6 @@ pip-selfcheck.json
 repos.txt
 
 # Python
+__pycache__/
 *.pyc
 .Python

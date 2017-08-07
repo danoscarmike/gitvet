@@ -1,3 +1,4 @@
+import pytz
 import time
 
 from datetime import datetime as dt
@@ -36,9 +37,6 @@ def get_issue_metadata(gh_login, org, repos, state):
                 }
             }
         }
-
-    Raises:
-        N/A
     """
 
     # Initialize dictionary for results
@@ -56,7 +54,7 @@ def get_issue_metadata(gh_login, org, repos, state):
         pr_aggregate_age = 0
 
         # get issue generator from GitHub
-        print 'Getting issues from ' + org + '/' + repo
+        print('Getting issues from %s %s' % (org, repo))
         issues = gh_login.issues_on(org, repo, state=state)
 
         for issue in issues:
@@ -64,19 +62,19 @@ def get_issue_metadata(gh_login, org, repos, state):
             if crl.remaining() > 100:
                 pass
             else:
-                print 'Rate limit low; going to sleep until rate resets'
+                print('Rate limit low; going to sleep until rate resets')
                 crl.print_remaining()
                 time.sleep(crl.reset() - int(time.time()))
 
-            created_date = issue.created_at.replace(tzinfo=None)
+            created_date = issue.created_at
 
             if issue.pull_request():
                 pr_counter += 1
-                pr_aggregate_age += (dt.utcnow() - created_date).days
+                pr_aggregate_age += (dt.now(pytz.utc) - created_date).days
                 continue
             else:
                 issue_counter += 1
-                print 'Adding issue number:', str(issue.number)
+                print('Adding issue number: %d' % issue.number)
                 # add this issue to the issues sub-dictionary in the
                 # data dictionary (key is GitHub issue number)
                 data[repo_path]['issues'][issue.number] = {}
@@ -102,6 +100,6 @@ def get_issue_metadata(gh_login, org, repos, state):
         data[repo_path]['prs']['pr_aggregate_age'] = pr_aggregate_age
         data[repo_path]['open_issues_count'] = issue_counter
 
-    data['updated'] = dt.utcnow().isoformat()
+    data['updated'] = dt.now(pytz.utc).isoformat()
 
     return data
