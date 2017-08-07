@@ -6,6 +6,7 @@ pip-selfcheck.json
 
 # triage tool input parameters
 repos.txt
+repo_test.txt
 
 # Python
 __pycache__/
