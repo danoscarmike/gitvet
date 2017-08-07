@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 from __future__ import division
 
-import copy
 import csv
 import json
 import os
+import pytz
+import re
 import six
 import sys
 
@@ -48,7 +49,7 @@ def main(org, repos, state):
 
     # Dump the data to a JSON file
     data_json = json.dumps(data)
-    file_time = dt.now().strftime("%Y%m%d")
+    file_time = dt.now(pytz.utc).strftime("%Y%m%d_%H:%M%Z")
     print('Dumping data to json file')
     with open('../output_files/' + file_time + '_raw_veneer_issue_meta.json',
               'w') as f:
@@ -69,11 +70,11 @@ def analyze_issue_metadata(data):
         csv file
     """
 
-    p0_labels = ['priority: p0', 'p0']
-    p1_labels = ['priority: p1', 'p1']
-    p2_labels = ['priority: p2+', 'p2+', 'priority: p2', 'p2']
-    fr_question = ['enhancement', 'type: enhancement', 'type: question',
-                   'question']
+    # p0_labels = ['priority: p0', 'p0']
+    # p1_labels = ['priority: p1', 'p1']
+    # p2_labels = ['priority: p2+', 'p2+', 'priority: p2', 'p2']
+    # fr_question = ['enhancement', 'type: enhancement', 'type: question',
+    #                'question']
 
     analysis = {}
 
@@ -102,49 +103,54 @@ def analyze_issue_metadata(data):
             analysis[repo]['prs']['age'] = data_decode[repo]['prs'][
                 'pr_aggregate_age']/analysis[repo]['prs']['count']
 
-        for issue in data_decode[repo]['issues']:
+        for issue_number, issue_meta in data_decode[repo]['issues'].items():
             created_date = dt.strptime(
-                data_decode[repo]['issues'][issue]['created'],
+                data_decode[repo]['issues'][issue_number]['created'],
                 "%Y-%m-%dT%H:%M:%S+00:00")
 
-            # it is invalid for an issue to carry multiple priority labels
-            # so count the most severe p0 THEN p1 THEN p2+ THEN fr_question
-
-            if any(w.lower() in data_decode[repo]['issues'][issue]['labels']
-                   for w in p0_labels):
-                analysis[repo]['p0']['count'] += 1
-                analysis[repo]['p0']['age'] += (dt.utcnow() -
+            analysis[repo]['issues']['age'] += (dt.utcnow() -
                                                 created_date).days
+            # determine the issue type (p0, p1, ...), and
+            # increment that type's counter and aggregate age
+            analysis[repo][determine_issue_type(issue_meta)]['count'] += 1
+            analysis[repo][determine_issue_type(issue_meta)]['age'] += (
+                dt.utcnow() - created_date).days
 
-            elif any(x.lower() in data_decode[repo]['issues'][issue]['labels']
-                     for x in p1_labels):
-                analysis[repo]['p1']['count'] += 1
-                analysis[repo]['p1']['age'] += (dt.utcnow() -
-                                                created_date).days
+            # if any(w.lower() in data_decode[repo]['issues'][issue]['labels']
+            #        for w in p0_labels):
+            #     analysis[repo]['p0']['count'] += 1
+            #     analysis[repo]['p0']['age'] += (dt.utcnow() -
+            #                                     created_date).days
+            #
+            # elif any(x.lower() in data_decode[repo]['issues'][issue]['labels']
+            #          for x in p1_labels):
+            #     analysis[repo]['p1']['count'] += 1
+            #     analysis[repo]['p1']['age'] += (dt.utcnow() -
+            #                                     created_date).days
+            #
+            # elif any(y.lower() in data_decode[repo]['issues'][issue]['labels']
+            #          for y in p2_labels):
+            #     analysis[repo]['p2+']['count'] += 1
+            #     analysis[repo]['p2+']['age'] += (dt.utcnow() -
+            #                                      created_date).days
+            #
+            # elif any(z in data_decode[repo]['issues'][issue]['labels']
+            #          for z in fr_question):
+            #     analysis[repo]['fr_question']['count'] += 1
+            #     analysis[repo]['fr_question']['age'] += (
+            #         dt.utcnow() - created_date).days
+            #
+            # else:
+            #     analysis[repo]['no_priority_label']['count'] += 1
+            #     analysis[repo]['no_priority_label']['age'] += (
+            #         dt.utcnow() - created_date).days
 
-            elif any(y.lower() in data_decode[repo]['issues'][issue]['labels']
-                     for y in p2_labels):
-                analysis[repo]['p2+']['count'] += 1
-                analysis[repo]['p2+']['age'] += (dt.utcnow() -
-                                                 created_date).days
-
-            elif any(z in data_decode[repo]['issues'][issue]['labels']
-                     for z in fr_question):
-                analysis[repo]['fr_question']['count'] += 1
-                analysis[repo]['fr_question']['age'] += (
-                    dt.utcnow() - created_date).days
-
-            else:
-                analysis[repo]['no_priority_label']['count'] += 1
-                analysis[repo]['no_priority_label']['age'] += (
-                    dt.utcnow() - created_date).days
-
-        for bucket, data in analysis[repo].iteritems():
+        for issue_type, data in analysis[repo].items():
             if data['count'] <= 0:
                 continue
-            analysis[repo][bucket]['age'] /= data['count']
+            analysis[repo][issue_type]['age'] /= data['count']
 
-    file_time = dt.now().strftime("%Y%m%d")
+    file_time = dt.now(pytz.utc).strftime("%Y%m%d_%H:%M%Z")
 
     with open('../output_files/%s_repo_issue_analysis.csv' % file_time,
               'w') as csvfile:
@@ -166,32 +172,31 @@ def analyze_issue_metadata(data):
               '(../output_files/%s_repo_issue_analysis.csv)' % file_time)
 
 
-# def open_issues_since_date(data, start_date):
-#     """Function that takes JSON product of analyze_issue_metadata.main
-#     and writes out a csv file of issue count by repo, where the
-#     issues created date is >= start_date OR the issue has a priority label.
-#
-#     Args:
-#         data: JSON file
-#         start_date: earliest issue creation date of interest
-#                     <string> of pattern: 'YYYY-MM-DD'
-#
-#     Output:
-#         csv file
-#     """
-#
-#     analysis = {}
-#
-#     # Load/decode the data JSON
-#     data_decode = json.loads(data)
-#
-#     for repo in data_decode:
-#         if repo == 'updated':
-#             continue
-#
-#         analysis[repo] = {'issues': {'count': 0, 'age': 0}}
+def determine_issue_type(issue):
+    """Return the type of issue that this is deemed to be.
 
+    Args:
+        issue (dict): The issue as returned from GitHub.
+                      It must have a `labels` key, which should be a list.
 
+    Returns:
+        str: The type of issue this is.
+    """
+
+    for label in issue['labels']:
+        if re.search(r'p0$', label.lower()):
+            return 'p0'
+    for label in issue['labels']:
+        if re.search(r'p1$', label.lower()):
+            return 'p1'
+    for label in issue['labels']:
+        if re.search(r'p2\+?$', label.lower()):
+            return 'p2+'
+    for label in issue['labels']:
+        if re.search(r'question', label.lower()) or re.search(r'enhancement', label):
+            return 'fr_question'
+
+    return 'no_priority_label'
 
 
 if __name__ == "__main__":
