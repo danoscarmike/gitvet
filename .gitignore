@@ -12,3 +12,6 @@ repo_test.txt
 __pycache__/
 *.pyc
 .Python
+
+# Git
+local/
