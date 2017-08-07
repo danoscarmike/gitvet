@@ -148,13 +148,10 @@ def analyze_issue_metadata(data):
 
     with open('../output_files/%s_repo_issue_analysis.csv' % file_time,
               'w') as csvfile:
-        fieldnames = ['repo'] + [category_data
-                                 for repo in analysis.keys()
-                                 for issue_category in analysis[repo].keys()
-                                 for category_data in
-                                 analysis[repo][issue_category].keys()]
-
-        print(fieldnames)
+        fieldnames = ['repo', 'issues', 'issues_age', 'p0', 'p0_age', 'p1',
+                      'p1_age', 'p2+', 'p2+_age', 'no_priority_label',
+                      'no_priority_label_age', 'fr_question', 'fr_question_age',
+                      'prs', 'prs_age']
 
         # analysis[repo] = {'issues': {'count': 0, 'age': 0},
         #                   'prs': {'count': 0, 'age': 0},
@@ -182,9 +179,12 @@ def analyze_issue_metadata(data):
         datawriter = csv.DictWriter(csvfile, delimiter=',',
                                     fieldnames=fieldnames, quotechar='"')
         datawriter.writeheader()
-        for repo in analysis.keys():
-            datawriter.writerow(analysis[repo])
-
+        for repo,metadata in analysis.items():
+            row = {'repo': repo}
+            for issue_category, issue_data in metadata.items():
+                row.update({issue_category: issue_data['count'],
+                           issue_category + '_age': issue_data['age']})
+                datawriter.writerow(row)
         print('State of triage data written to file '
               '(../output_files/%s_repo_issue_analysis.csv)' % file_time)
 
