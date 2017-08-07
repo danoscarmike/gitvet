@@ -148,7 +148,7 @@ def analyze_issue_metadata(data):
 
     with open('../output_files/%s_repo_issue_analysis.csv' % file_time,
               'w') as csvfile:
-        fieldnames = ['repo'] + [issue_category + '[' + category_data + ']'
+        fieldnames = ['repo'] + [category_data
                                  for repo in analysis.keys()
                                  for issue_category in analysis[repo].keys()
                                  for category_data in
