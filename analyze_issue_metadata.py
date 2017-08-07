@@ -1,6 +1,12 @@
+from __future__ import absolute_import
+from __future__ import division
+
 import csv
 import json
 import os
+import pytz
+import re
+import six
 import sys
 
 from datetime import datetime as dt
@@ -10,10 +16,9 @@ import github3
 import get_issue_metadata as gim
 
 
-def main(state):
+def main(org, repos, state):
 
-    """
-    Command line tool that reads in an input file
+    """Command line tool that reads in an input file
     containing GitHub repository names, calls read_issue_metadata
     and returns a JSON file of issue data.
 
@@ -23,18 +28,15 @@ def main(state):
     Args:
         state: GitHub state of issue ('open', 'closed'
                or 'all')
-        sys.argv[1]: github owner or organization
-        sys.argv[2]: path to input file containing names of repos belonging to
-                     owner or org in sys.argv[1].  One repo name per line.
+        org: github owner or organization
+        repos: path to input file containing names of repos belonging to
+               owner or org in sys.argv[1].  One repo name per line.
 
     Returns:
         A JSON of issue metadata
-
-    Raises:
-        N/A
     """
 
-    org = str(sys.argv[1])
+    org = six.text_type(sys.argv[1])
 
     with open(sys.argv[2]) as f:
         repos = f.readlines()
@@ -47,8 +49,8 @@ def main(state):
 
     # Dump the data to a JSON file
     data_json = json.dumps(data)
-    file_time = dt.now().strftime("%Y%m%d")
-    print 'Dumping data to json file'
+    file_time = dt.now(pytz.utc).strftime("%Y%m%d_%H:%M%Z")
+    print('Dumping data to json file')
     with open('../output_files/' + file_time + '_raw_veneer_issue_meta.json',
               'w') as f:
         data = json.dump(data, f, sort_keys=True, indent=4, separators=(
@@ -58,14 +60,15 @@ def main(state):
 
 
 def analyze_issue_metadata(data):
+    """Function that takes JSON product of analyze_issue_metadata.main
+    and writes out a csv file of issue type statistics by repo.
 
-    p0_labels = ['Priority: P0', 'priority: P0', 'priority: p0', 'P0', 'p0']
-    p1_labels = ['Priority: P1', 'priority: P1', 'priority: p1', 'P1', 'p1']
-    p2_labels = ['Priority: P2+', 'priority: P2+', 'priority: p2+',
-                 'P2+', 'p2+', 'Priority: P2', 'priority: P2', 'priority: p2',
-                 'P2', 'p2']
-    fr_question = ['Type: Enhancement', 'Type: Question', 'type: enhancement',
-                   'type: question', 'enhancement']
+    Args:
+        data: JSON file
+
+    Output:
+        csv file
+    """
 
     analysis = {}
 
@@ -75,112 +78,93 @@ def analyze_issue_metadata(data):
     for repo in data_decode:
         if repo == 'updated':
             continue
-        else:
 
-            analysis[repo] = {'issues': {'count': 0, 'age': 0},
-                              'prs': {'count': 0, 'age': 0},
-                              'p0': {'count': 0, 'age': 0},
-                              'p1': {'count': 0, 'age': 0},
-                              'p2+': {'count': 0, 'age': 0},
-                              'no_priority_label': {'count': 0, 'age': 0},
-                              'fr_question': {'count': 0, 'age': 0}}
+        analysis[repo] = {'issues': {'count': 0, 'age': 0},
+                          'prs': {'count': 0, 'age': 0},
+                          'p0': {'count': 0, 'age': 0},
+                          'p1': {'count': 0, 'age': 0},
+                          'p2+': {'count': 0, 'age': 0},
+                          'no_priority_label': {'count': 0, 'age': 0},
+                          'fr_question': {'count': 0, 'age': 0}}
 
-            analysis[repo]['issues']['count'] = data_decode[repo][
-                                                  'open_issues_count']
-            analysis[repo]['prs']['count'] = data_decode[repo]['prs'][
-                                               'open_pr_count']
+        analysis[repo]['issues']['count'] = data_decode[repo][
+                                              'open_issues_count']
+        analysis[repo]['prs']['count'] = data_decode[repo]['prs'][
+                                           'open_pr_count']
 
-            # if there are prs, calculate their mean age
-            if analysis[repo]['prs']['count'] > 0:
-                analysis[repo]['prs']['age'] = data_decode[repo]['prs'][
-                    'pr_aggregate_age']/analysis[repo]['prs']['count']
+        # if there are prs, calculate their mean age
+        if analysis[repo]['prs']['count'] > 0:
+            analysis[repo]['prs']['age'] = data_decode[repo]['prs'][
+                'pr_aggregate_age']/analysis[repo]['prs']['count']
 
-            for issue in data_decode[repo]['issues']:
-                created_date = dt.strptime(
-                    data_decode[repo]['issues'][issue]['created'],
-                    "%Y-%m-%dT%H:%M:%S+00:00")
+        for issue_number, issue_meta in data_decode[repo]['issues'].items():
+            created_date = dt.strptime(
+                data_decode[repo]['issues'][issue_number]['created'],
+                "%Y-%m-%dT%H:%M:%S+00:00")
 
-                # it is invalid for an issue to carry multiple priority labels
-                # so count the most severe p0 THEN p1 THEN p2+ THEN fr_question
+            analysis[repo]['issues']['age'] += (dt.utcnow() -
+                                                created_date).days
 
-                if any(x in data_decode[repo]['issues'][issue]['labels']
-                       for x in p0_labels):
-                    analysis[repo]['p0']['count'] += 1
-                    analysis[repo]['p0']['age'] += (dt.utcnow() -
-                                                    created_date).days
+            # determine the issue type (p0, p1, ...), and
+            # increment that type's counter and aggregate age
+            analysis[repo][determine_issue_type(issue_meta)]['count'] += 1
+            analysis[repo][determine_issue_type(issue_meta)]['age'] += (
+                dt.utcnow() - created_date).days
 
-                elif any(y in data_decode[repo]['issues'][issue]['labels']
-                         for y in p1_labels):
-                    analysis[repo]['p1']['count'] += 1
-                    analysis[repo]['p1']['age'] += (dt.utcnow() -
-                                                    created_date).days
+        for issue_type, data in analysis[repo].items():
+            if data['count'] <= 0:
+                continue
+            analysis[repo][issue_type]['age'] /= data['count']
 
-                elif any(z in data_decode[repo]['issues'][issue]['labels']
-                         for z in p2_labels):
-                    analysis[repo]['p2+']['count'] += 1
-                    analysis[repo]['p2+']['age'] += (dt.utcnow() -
-                                                     created_date).days
+    file_time = dt.now(pytz.utc).strftime("%Y%m%d_%H:%M%Z")
 
-                elif any(x in data_decode[repo]['issues'][issue]['labels']
-                         for x in fr_question):
-                    analysis[repo]['fr_question']['count'] += 1
-                    analysis[repo]['fr_question']['age'] += (
-                        dt.utcnow() - created_date).days
+    with open('../output_files/%s_repo_issue_analysis.csv' % file_time,
+              'w') as csvfile:
+        fieldnames = ['repo', 'issues', 'issues_age', 'p0', 'p0_age', 'p1',
+                      'p1_age', 'p2+', 'p2+_age', 'no_priority_label',
+                      'no_priority_label_age', 'fr_question', 'fr_question_age',
+                      'prs', 'prs_age']
 
-                else:
-                    analysis[repo]['no_priority_label']['count'] += 1
-                    analysis[repo]['no_priority_label']['age'] += (
-                        dt.utcnow() - created_date).days
+        datawriter = csv.DictWriter(csvfile, delimiter=',',
+                                    fieldnames=fieldnames, quotechar='"')
+        datawriter.writeheader()
+        for repo,metadata in analysis.items():
+            row = {'repo': repo}
+            for issue_category, issue_data in metadata.items():
+                row.update({issue_category: issue_data['count'],
+                           issue_category + '_age': issue_data['age']})
+            datawriter.writerow(row)
+        print('State of triage data written to file '
+              '(../output_files/%s_repo_issue_analysis.csv)' % file_time)
 
-            if analysis[repo]['p0']['count'] > 0:
-                analysis[repo]['p0']['age'] = analysis[repo]['p0'][
-                    'age']/analysis[repo]['p0']['count']
-            if analysis[repo]['p1']['count'] > 0:
-                analysis[repo]['p1']['age'] = analysis[repo]['p1'][
-                    'age']/analysis[repo]['p1']['count']
-            if analysis[repo]['p2+']['count'] > 0:
-                analysis[repo]['p2+']['age'] = analysis[repo]['p2+'][
-                    'age']/analysis[repo]['p2+']['count']
-            if analysis[repo]['no_priority_label']['count'] > 0:
-                analysis[repo]['no_priority_label']['age'] = analysis[repo][
-                    'no_priority_label']['age']/analysis[repo][
-                    'no_priority_label']['count']
-            if analysis[repo]['fr_question']['count'] > 0:
-                analysis[repo]['fr_question']['age'] = analysis[repo][
-                    'fr_question']['age']/analysis[repo]['fr_question'][
-                        'count']
 
-    file_time = dt.now().strftime("%Y%m%d")
+def determine_issue_type(issue):
+    """Return the type of issue that this is deemed to be.
 
-    with open('../output_files/' + file_time +
-              '_repo_issue_analysis.csv', 'w') as csvfile:
+    Args:
+        issue (dict): The issue as returned from GitHub.
+                      It must have a `labels` key, which should be a list.
 
-        datawriter = csv.writer(csvfile, delimiter=',', quotechar='"')
-        datawriter.writerow(['repo', 'issues', 'p0', 'p0_age', 'p1',
-                             'p1_age', 'p2+', 'p2_age', 'no_p', 'no_p_age',
-                             'fr/question', 'fr/question_age', 'pulls',
-                             'pulls_age'])
+    Returns:
+        str: The type of issue this is.
+    """
 
-        for repo in analysis:
-            datawriter.writerow([repo,
-                                 analysis[repo]['issues']['count'],
-                                 analysis[repo]['p0']['count'],
-                                 analysis[repo]['p0']['age'],
-                                 analysis[repo]['p1']['count'],
-                                 analysis[repo]['p1']['age'],
-                                 analysis[repo]['p2+']['count'],
-                                 analysis[repo]['p2+']['age'],
-                                 analysis[repo]['no_priority_label']['count'],
-                                 analysis[repo]['no_priority_label']['age'],
-                                 analysis[repo]['fr_question']['count'],
-                                 analysis[repo]['fr_question']['age'],
-                                 analysis[repo]['prs']['count'],
-                                 analysis[repo]['prs']['age']])
+    for label in issue['labels']:
+        if re.search(r'p0$', label.lower()):
+            return 'p0'
+    for label in issue['labels']:
+        if re.search(r'p1$', label.lower()):
+            return 'p1'
+    for label in issue['labels']:
+        if re.search(r'p2\+?$', label.lower()):
+            return 'p2+'
+    for label in issue['labels']:
+        if re.search(r'question', label.lower()) or re.search(r'enhancement', label):
+            return 'fr_question'
 
-        print 'State of triage data written to file (../output_files/' + \
-              file_time + '_repo_issue_analysis.csv)'
+    return 'no_priority_label'
 
 
 if __name__ == "__main__":
-    data = main(state='open')
+    data = main(sys.argv[1], sys.argv[2], 'open')
     analyze_issue_metadata(data)
