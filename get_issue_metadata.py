@@ -64,7 +64,7 @@ def get_issue_metadata(gh_login, org, repos, state):
         # get issue generator from GitHub
         print('Getting issues from %s %s' % (org, repo))
         issues = gh_login.issues_on(org, repo, state=state, etag=etag)
-        
+
         for issue in issues:
             # check remaining rate limit
             if crl.remaining() > 100:
