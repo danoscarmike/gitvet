@@ -4,10 +4,9 @@ include/
 lib/
 pip-selfcheck.json
 
-# triage tool input parameters
-repos.txt
-repo_test.txt
-etag.txt
+# inputs & outputs
+*.csv
+*.txt
 
 # Python
 __pycache__/
