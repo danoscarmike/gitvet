@@ -1,3 +1,4 @@
+import os
 import pytz
 import time
 
@@ -42,6 +43,13 @@ def get_issue_metadata(gh_login, org, repos, state):
     # Initialize dictionary for results
     data = {}
 
+    # Load an etag from last run (if one exists)
+    etag = None
+    if os.path.exists('etag.txt'):
+        f = open('etag.txt', 'r')
+        etag = f.readline()
+        f.close()
+
     for repo in repos:
         # set up repo specific variables, data structures and counters
         repo_path = org + '/' + repo
@@ -55,8 +63,8 @@ def get_issue_metadata(gh_login, org, repos, state):
 
         # get issue generator from GitHub
         print('Getting issues from %s %s' % (org, repo))
-        issues = gh_login.issues_on(org, repo, state=state)
-
+        issues = gh_login.issues_on(org, repo, state=state, etag=etag)
+        
         for issue in issues:
             # check remaining rate limit
             if crl.remaining() > 100:
@@ -86,6 +94,9 @@ def get_issue_metadata(gh_login, org, repos, state):
                     issue.updated_at.isoformat()
                 data[repo_path]['issues'][issue.number]['title'] = \
                     issue.title
+                if issue.closed_at:
+                    data[repo_path]['issues'][issue.number]['closed'] = \
+                        issue.closed_at.isoformat()
                 if issue.assignee:
                     data[repo_path]['issues'][issue.number][
                         'assignee'] = issue.assignee.login
@@ -96,10 +107,17 @@ def get_issue_metadata(gh_login, org, repos, state):
                         label.name for label in issue.labels()
                         ]
 
+        etag = issues.etag
+
         data[repo_path]['prs']['open_pr_count'] = pr_counter
         data[repo_path]['prs']['pr_aggregate_age'] = pr_aggregate_age
         data[repo_path]['open_issues_count'] = issue_counter
 
     data['updated'] = dt.now(pytz.utc).isoformat()
+
+    print('Saving etag: %s' % etag)
+    with open('etag.txt', 'w') as f:
+        if etag:
+            f.write(etag)
 
     return data

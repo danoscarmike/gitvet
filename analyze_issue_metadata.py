@@ -166,5 +166,5 @@ def determine_issue_type(issue):
 
 
 if __name__ == "__main__":
-    data = main(sys.argv[1], sys.argv[2], 'open')
+    data = main(sys.argv[1], sys.argv[2], 'all')
     analyze_issue_metadata(data)
