@@ -5,8 +5,8 @@ lib/
 pip-selfcheck.json
 
 # triage tool input parameters
-repos.txt
-repo_test.txt
+*.csv
+*.txt
 
 # Python
 __pycache__/
