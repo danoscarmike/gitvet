@@ -26,7 +26,11 @@ with open('../output_files/%s_all_events.csv' % file_time,
         print('Getting events from %s' % repo)
         for event in g.repository(org, repo).events(10):
             if event.type in ['IssuesEvent', 'IssueCommentEvent', 'LabelEvent']:
-                row = [repo, event.id,
-                       event.type, event.as_dict()['payload']['action'],
-                       event.created_at, event.actor]
+                row = [repo,
+                       event.id,
+                       event.type,
+                       event.as_dict()['payload']['action'],
+                       event.created_at,
+                       event.actor,
+                       event.label]
                 writer.writerow(row)
