@@ -16,7 +16,7 @@ import github3
 import get_issue_metadata as gim
 
 
-def main(org, repos, state):
+def main(repos, state):
 
     """Command line tool that reads in an input file
     containing GitHub repository names, calls read_issue_metadata
@@ -26,32 +26,28 @@ def main(org, repos, state):
         $ python analyze_issue_metadata.py googlecloudplatform repos.txt
 
     Args:
+        repos: path to input file containing list of 'org/repos'. One per line.
         state: GitHub state of issue ('open', 'closed'
                or 'all')
-        org: github owner or organization
-        repos: path to input file containing names of repos belonging to
-               owner or org in sys.argv[1].  One repo name per line.
 
     Returns:
         A JSON of issue metadata
     """
 
-    org = six.text_type(sys.argv[1])
-
-    with open(sys.argv[2]) as f:
+    with open(sys.argv[1]) as f:
         repos = f.readlines()
     repos = [x.strip() for x in repos]
 
     # Authenticate with GitHub using Personal Access Token
     g = github3.login(token=os.environ['GH_TOKEN'])
 
-    data = gim.get_issue_metadata(g, org, repos, state)
+    data = gim.get_issue_metadata(g, repos, state)
 
     # Dump the data to a JSON file
     data_json = json.dumps(data)
-    file_time = dt.now(pytz.utc).strftime("%Y%m%d_%H:%M%Z")
+    file_time = dt.now(pytz.utc).strftime("%Y%m%d_%H%M_%Z")
     print('Dumping data to json file')
-    with open('../output_files/' + file_time + '_raw_veneer_issue_meta.json',
+    with open('../output_files/%s_raw_veneer_issue_meta.json' % file_time,
               'w') as f:
         data = json.dump(data, f, sort_keys=True, indent=4, separators=(
              ',', ': '))
@@ -116,7 +112,7 @@ def analyze_issue_metadata(data):
                 continue
             analysis[repo][issue_type]['age'] /= data['count']
 
-    file_time = dt.now(pytz.utc).strftime("%Y%m%d_%H:%M%Z")
+    file_time = dt.now(pytz.utc).strftime("%Y%m%d_%H%M%Z")
 
     with open('../output_files/%s_repo_issue_analysis.csv' % file_time,
               'w') as csvfile:
@@ -166,5 +162,5 @@ def determine_issue_type(issue):
 
 
 if __name__ == "__main__":
-    data = main(sys.argv[1], sys.argv[2], 'open')
+    data = main(sys.argv[1], 'open')
     analyze_issue_metadata(data)
