@@ -24,7 +24,7 @@ with open('../output_files/%s_all_events.csv' % file_time,
     writer = csv.writer(csvfile, delimiter=',')
     for repo in repos:
         print('Getting events from %s' % repo)
-        for event in g.repository(org, repo).events(2000):
+        for event in g.repository(org, repo).events():
             if event.type in ['IssuesEvent', 'IssueCommentEvent']:
                 row = [repo,
                        event.id,
