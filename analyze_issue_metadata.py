@@ -15,16 +15,18 @@ import github3
 
 import get_issue_metadata as gim
 
+"""
+Command line tool that reads in an input file
+containing GitHub repository names, calls read_issue_metadata
+and returns a JSON file of issue data.
+
+Usage (command line):
+    $ python analyze_issue_metadata.py googlecloudplatform repos.txt
+"""
 
 def main(repos, state):
 
-    """Command line tool that reads in an input file
-    containing GitHub repository names, calls read_issue_metadata
-    and returns a JSON file of issue data.
-
-    Usage (command line):
-        $ python analyze_issue_metadata.py googlecloudplatform repos.txt
-
+    """
     Args:
         repos: path to input file containing list of 'org/repos'. One per line.
         state: GitHub state of issue ('open', 'closed'
