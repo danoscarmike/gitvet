@@ -18,7 +18,7 @@ import check_rate_limit as crl
 import github3
 
 
-def main(gh_login, repo_file):
+def main(gh_login, repo_file, since):
 
     """
     Function uses the GitHub v3 API to read the issues for each repo
@@ -27,6 +27,9 @@ def main(gh_login, repo_file):
     Args:
         gh_login: an authenticated GitHub session.
         repo_file: file containing list of GitHub repository names.
+        since: only issues updated at or after this time are returned. 
+               This is a timestamp in ISO 8601 format:
+               YYYY-MM-DDTHH:MM:SSZ.
 
     Returns:
         Writes to CSV file
@@ -59,10 +62,11 @@ def main(gh_login, repo_file):
                     etag = etags[org][repo_name]
                     print "Etag found. Passing to API call."
                     issues = gh_login.issues_on(org, repo_name, state='closed',
-                                                etag=etag)
+                                                since=since, etag=etag)
                 except:
                     print("No etag found for %s/%s." % (org, repo_name))
-                    issues = gh_login.issues_on(org, repo_name, state='closed')
+                    issues = gh_login.issues_on(org, repo_name, state='closed',
+         					since=since)
 
                 for issue in issues:
                     # check remaining rate limit
@@ -88,7 +92,6 @@ def main(gh_login, repo_file):
                 except:
                     etags[org] = {}
                     etags[org][repo_name] = issues.etag
-                print etags
             csvfile.close()
         etag_file.seek(0)
         json.dump(etags, etag_file)
@@ -98,4 +101,4 @@ def main(gh_login, repo_file):
 
 if __name__ == "__main__":
     g = github3.login(token=os.environ['GH_TOKEN'])
-    main(g, sys.argv[1])
+    main(g, sys.argv[1], sys.argv[2])
