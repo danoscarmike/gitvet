@@ -7,7 +7,7 @@ from datetime import datetime as dt
 import check_rate_limit as crl
 
 
-def get_issue_metadata(gh_login, org, repos, state):
+def get_issue_metadata(gh_login, repos, state):
 
     """
     Function uses the GitHub v3 API to read the issues for each repo
@@ -42,28 +42,20 @@ def get_issue_metadata(gh_login, org, repos, state):
 
     # Initialize dictionary for results
     data = {}
-
-    # Load an etag from last run (if one exists)
-    etag = None
-    if os.path.exists('etag.txt'):
-        f = open('etag.txt', 'r')
-        etag = f.readline()
-        f.close()
-
     for repo in repos:
         # set up repo specific variables, data structures and counters
-        repo_path = org + '/' + repo
-        data[repo_path] = {'open_issues_count': 0,
-                           'prs': {'open_pr_count': 0,
-                                   'pr_aggregate_age': 0},
-                           'issues': {}}
+        data[repo] = {'open_issues_count': 0,
+                      'prs': {'open_pr_count': 0,
+                              'pr_aggregate_age': 0},
+                      'issues': {}}
         issue_counter = 0
         pr_counter = 0
         pr_aggregate_age = 0
 
         # get issue generator from GitHub
-        print('Getting issues from %s %s' % (org, repo))
-        issues = gh_login.issues_on(org, repo, state=state, etag=etag)
+        print('Getting issues from %s' % repo)
+        org, repo_name = repo.split("/")
+        issues = gh_login.issues_on(org, repo_name, state=state)
 
         for issue in issues:
             # check remaining rate limit
@@ -85,33 +77,31 @@ def get_issue_metadata(gh_login, org, repos, state):
                 print('Adding issue number: %d' % issue.number)
                 # add this issue to the issues sub-dictionary in the
                 # data dictionary (key is GitHub issue number)
-                data[repo_path]['issues'][issue.number] = {}
+                data[repo]['issues'][issue.number] = {}
 
                 # add the issue's metadata to the new sub-dictionary
-                data[repo_path]['issues'][issue.number]['created'] = \
+                data[repo]['issues'][issue.number]['created'] = \
                     issue.created_at.isoformat()
-                data[repo_path]['issues'][issue.number]['updated'] = \
+                data[repo]['issues'][issue.number]['updated'] = \
                     issue.updated_at.isoformat()
-                data[repo_path]['issues'][issue.number]['title'] = \
+                data[repo]['issues'][issue.number]['title'] = \
                     issue.title
                 if issue.closed_at:
                     data[repo_path]['issues'][issue.number]['closed'] = \
                         issue.closed_at.isoformat()
                 if issue.assignee:
-                    data[repo_path]['issues'][issue.number][
+                    data[repo]['issues'][issue.number][
                         'assignee'] = issue.assignee.login
 
                 # add list of issue's labels
                 if issue.labels():
-                    data[repo_path]['issues'][issue.number]['labels'] = [
+                    data[repo]['issues'][issue.number]['labels'] = [
                         label.name for label in issue.labels()
                         ]
 
-        etag = issues.etag
-
-        data[repo_path]['prs']['open_pr_count'] = pr_counter
-        data[repo_path]['prs']['pr_aggregate_age'] = pr_aggregate_age
-        data[repo_path]['open_issues_count'] = issue_counter
+        data[repo]['prs']['open_pr_count'] = pr_counter
+        data[repo]['prs']['pr_aggregate_age'] = pr_aggregate_age
+        data[repo]['open_issues_count'] = issue_counter
 
     data['updated'] = dt.now(pytz.utc).isoformat()
 
