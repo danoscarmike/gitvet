@@ -136,6 +136,27 @@ def analyze_issue_metadata(data):
               '(../output_files/%s_repo_issue_analysis.csv)' % file_time)
 
 
+def all_issues_to_csv(data):
+    """
+    """
+
+    all_issues = {}
+
+    # Load/decode the data JSON
+    data_decode = json.loads(data)
+
+    for repo in data_decode:
+        for issue in repo:
+            for issue_number, issue_meta in issue.items():
+                all_issues['issue_number'] = issue_number
+                all_issues['issue_category'] = row.append(
+                    determine_issue_type(issue_meta))
+                all_issues['title'] = issue_meta['title']
+                all_issues['created'] = issue_meta['created']
+                all_issues['updated'] = issue_meta['updated']
+                if issue_meta['closed']:
+                    all_issues['closed'] = issue_meta['closed']
+
 def determine_issue_type(issue):
     """Return the type of issue that this is deemed to be.
 
@@ -166,3 +187,4 @@ def determine_issue_type(issue):
 if __name__ == "__main__":
     data = main(sys.argv[1], 'open')
     analyze_issue_metadata(data)
+    all_issues_to_csv(data)

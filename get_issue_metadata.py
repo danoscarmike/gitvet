@@ -1,3 +1,4 @@
+import os
 import pytz
 import time
 
@@ -85,6 +86,9 @@ def get_issue_metadata(gh_login, repos, state):
                     issue.updated_at.isoformat()
                 data[repo]['issues'][issue.number]['title'] = \
                     issue.title
+                if issue.closed_at:
+                    data[repo_path]['issues'][issue.number]['closed'] = \
+                        issue.closed_at.isoformat()
                 if issue.assignee:
                     data[repo]['issues'][issue.number][
                         'assignee'] = issue.assignee.login
@@ -100,5 +104,10 @@ def get_issue_metadata(gh_login, repos, state):
         data[repo]['open_issues_count'] = issue_counter
 
     data['updated'] = dt.now(pytz.utc).isoformat()
+
+    print('Saving etag: %s' % etag)
+    with open('etag.txt', 'w') as f:
+        if etag:
+            f.write(etag)
 
     return data
