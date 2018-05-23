@@ -21,7 +21,7 @@ containing GitHub repository names, calls read_issue_metadata
 and returns a JSON file of issue data.
 
 Usage (command line):
-    $ python analyze_issue_metadata.py googlecloudplatform repos.txt
+    $ python analyze_issue_metadata.py repos.txt
 """
 
 def main(repos, state):
@@ -36,13 +36,14 @@ def main(repos, state):
         A JSON of issue metadata
     """
 
-    with open(sys.argv[1]) as f:
+    with open(repos) as f:
         repos = f.readlines()
     repos = [x.strip() for x in repos]
 
     # Authenticate with GitHub using Personal Access Token
     g = github3.login(token=os.environ['GH_TOKEN'])
 
+    # Get the issue metadata
     data = gim.get_issue_metadata(g, repos, state)
 
     # Dump the data to a JSON file
@@ -164,5 +165,5 @@ def determine_issue_type(issue):
 
 
 if __name__ == "__main__":
-    data = main(sys.argv[1], 'open')
+    data = main(sys.argv[1], state='open')
     analyze_issue_metadata(data)

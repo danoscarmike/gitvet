@@ -6,10 +6,10 @@ import os
 def print_remaining():
     g = github3.login(token=os.environ['GH_TOKEN'])
     rates = g.rate_limit()
-    print 'Rate limit:', str(rates['rate']['limit'])
-    print 'Rate remaining:', str(rates['rate']['remaining'])
-    print 'Rate resets:', dt.fromtimestamp(
-                            rates['rate']['reset']).strftime('%F %X')
+    print('Rate limit:', str(rates['rate']['limit']))
+    print('Rate remaining:', str(rates['rate']['remaining']))
+    print('Rate resets:', dt.fromtimestamp(
+                            rates['rate']['reset']).strftime('%F %X'))
 
 
 def remaining():
