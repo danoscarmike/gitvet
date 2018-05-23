@@ -50,7 +50,7 @@ def main(repos, state):
     data_json = json.dumps(data)
     file_time = dt.now(pytz.utc).strftime("%Y%m%d_%H%M_%Z")
     print('Dumping data to json file')
-    with open('../output_files/%s_raw_veneer_issue_meta.json' % file_time,
+    with open('./output_files/%s_raw_issue_meta.json' % file_time,
               'w') as f:
         data = json.dump(data, f, sort_keys=True, indent=4, separators=(
              ',', ': '))
@@ -117,7 +117,7 @@ def analyze_issue_metadata(data):
 
     file_time = dt.now(pytz.utc).strftime("%Y%m%d_%H%M%Z")
 
-    with open('../output_files/%s_repo_issue_analysis.csv' % file_time,
+    with open('./output_files/%s_issue_analysis.csv' % file_time,
               'w') as csvfile:
         fieldnames = ['repo', 'issues', 'issues_age', 'p0', 'p0_age', 'p1',
                       'p1_age', 'p2+', 'p2+_age', 'no_priority_label',
@@ -134,7 +134,7 @@ def analyze_issue_metadata(data):
                            issue_category + '_age': issue_data['age']})
             datawriter.writerow(row)
         print('State of triage data written to file '
-              '(../output_files/%s_repo_issue_analysis.csv)' % file_time)
+              '(./output_files/%s_repo_issue_analysis.csv)' % file_time)
 
 
 def determine_issue_type(issue):

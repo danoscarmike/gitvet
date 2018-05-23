@@ -67,7 +67,7 @@ def get_issue_metadata(gh_login, repos, state):
 
             created_date = issue.created_at
 
-            if issue.pull_request():
+            if 'pull_request' in issue.as_dict():
                 pr_counter += 1
                 pr_aggregate_age += (dt.now(pytz.utc) - created_date).days
                 continue
