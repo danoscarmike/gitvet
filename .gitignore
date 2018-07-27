@@ -4,9 +4,12 @@ include/
 lib/
 pip-selfcheck.json
 
-# triage tool input parameters
+# triage tool input files
 *.csv
 *.txt
+
+# output
+output/
 
 # Python
 __pycache__/
