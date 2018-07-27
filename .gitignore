@@ -1,9 +1,3 @@
-# virtualenv
-bin/
-include/
-lib/
-pip-selfcheck.json
-
 # triage tool input files
 *.csv
 *.txt
@@ -15,6 +9,13 @@ output/
 __pycache__/
 *.pyc
 .Python
+/*.egg-info
+/*.egg
+
+# Setuptools distribution folder.
+/dist/
 
 # Git
 local/
+
+
