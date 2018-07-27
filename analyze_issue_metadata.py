@@ -117,7 +117,7 @@ def analyze_issue_metadata(data):
 
     file_time = dt.now(pytz.utc).strftime("%Y%m%d_%H%M%Z")
 
-    with open('./output_files/%s_issue_analysis.csv' % file_time,
+    with open('./output/%s_issue_analysis.csv' % file_time,
               'w') as csvfile:
         fieldnames = ['repo', 'issues', 'issues_age', 'p0', 'p0_age', 'p1',
                       'p1_age', 'p2+', 'p2+_age', 'no_priority_label',
