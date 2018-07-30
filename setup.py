@@ -9,7 +9,7 @@ def readme():
 setup(name='gitvet',
       version='0.1',
       description='Tools for GitHub issue triage',
-      long_description='readme()'
+      long_description='readme()',
       classifiers=[
         'Development Status :: 3 - Alpha',
         'License :: OSI Approved :: MIT License',
