@@ -6,7 +6,6 @@ import json
 import os
 import pytz
 import re
-import six
 import sys
 
 from datetime import datetime as dt
